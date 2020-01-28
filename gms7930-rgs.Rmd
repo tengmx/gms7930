@@ -1,0 +1,263 @@
+---
+title: "ChIP-seq Data Analysis"
+author: "Mingxiang Teng"
+date: "1/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE)
+```
+
+## Install R packages
+
+In order to perform ChIP-seq data analysis with R, we have to first make sure necessary R packages 
+installed before any processing. Bioconductor <http://www.bioconductor.org> is a large community
+which documents thousands of R packages dedicated to biomedical data analysis.
+We will pick several of those packages from Bioconductor for ChIP-seq data analysis. Note that 
+some widely-used tools for ChIP-seq data analysis were not developed under R environment. 
+Thus, R packages chosen here are for demostration purpose, and might not be well adopted by community users.
+
+```{r install, echo=TRUE, results='hide',message=FALSE}
+## install necessary Bioconductor packages
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+#BiocManager::install("Rsamtools") ## dealing with BAM files
+#BiocManager::install("GenomicAlignments") ## dealing with sequencing reads
+#BiocManager::install("GenomicRanges") ## dealing with genomic intervals
+BiocManager::install("knitr") ## dealing with rmarkdown
+#BiocManager::install("normr") ## dealing with peak calling
+#BiocManager::install("ChIPseeker") ## dealing with peak annotation
+#BiocManager::install("TxDb.Hsapiens.UCSC.hg19.knownGene") ## human genome and transcriptome
+#BiocManager::install("org.Hs.eg.db") ## gene name ontology
+#BiocManager::install("annotate") ## genome annotation
+#BiocManager::install("rtracklayer") ## genomic sequencing tracks
+#BiocManager::install("RColorBrewer") ## color code
+```
+
+After all required packages installed, we need to load these packages.
+
+```{r load, echo=TRUE, results='hide',message=FALSE}
+library(Rsamtools)
+library(GenomicAlignments)
+library(GenomicRanges)
+library(normr)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(org.Hs.eg.db)
+library(ChIPseeker)
+library(annotate)
+library(rtracklayer)
+library(RColorBrewer)
+```
+
+
+## Goal of the lecture
+
+We will demostrate how to analyze ChIP-seq data under R environment, from peak detection to peak annotation. 
+We will summarize the characteristics of the given ChIP-seq dataset and report/visualize ChIP-seq profile 
+related to individual genes.
+
+## Prepare ChIP-seq data
+
+We will start from the mapped sequencing reads instead of the raw for two reasons: (1) our main practice here 
+is to demostrate ChIP-seq peak detection and annotation. (2) tools for raw data processing, *e.g.* reads mapping,
+are generally not developed under R. Mapped reads are usually stored with SAM format <https://samtools.github.io/hts-specs/SAMv1.pdf>. 
+To shrink the size of the SAM files, SAM format is usually further converted to its binary version, *i.e.* 
+BAM format. Basically, each record of SAM/BAM files represents one sequencing read. A ChIP-seq sequencing sample 
+usually involves dozens of million of reads. 
+
+For demostration, we have generated small BAM files only containing sequencing reads on human chromosome 21
+for protein CTCF binding in cell line GM12878 <https://github.com/tengmx/gms7930/data>. The full genome-wide 
+sequencing data can be downloaded from here: <https://hgdownload.soe.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeBroadHistone/>.
+As we discussed before, we also need INPUT sample to control experimental noises. We can download both files
+with the following code and put all files into a folder for downstream analysis. Note, we also download the 
+index files for the BAM files here.
+
+```{r downloads, echo=TRUE, results='hide',message=FALSE}
+## download the ChIP-seq sequencing reads, and put the files into a folder
+## depending on the operating system, folder name might need to be changed.
+workdir = '~'
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam',paste0(workdir,'/Gm12878Control.bam'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam.bai',paste0(workdir,'/Gm12878Control.bam.bai'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam',paste0(workdir,'/Gm12878Ctcf.bam'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam.bai',paste0(workdir,'/Gm12878Ctcf.bam.bai'))
+```
+
+## Exploratory data analysis
+
+Exploratory data analysis helps us better understand our data using simple techniques/operation.
+
+With the downloaded dataset, we can compare ChIP and INPUT to see if ChIP actually contains 
+more "peaks" than INPUT. To do so, we will use functions from R package **GenomicAlignments**.
+We first specify ChIP and INPUT file, separately, then count the sequencing reads in these files
+that are overlapped with consecutive genomic windows of 1000bp width. Here, for exploratory 
+purpose, we use large window size to mimic peak regions. Then, we can apply simple normalizatin 
+procedure based on library size to make data "comparable" across samples. Following code shows 
+the read counts of first several windows on chr21 in both ChIP and INPUT.
+
+```{r bam, echo=TRUE}
+## sequencing files that only contrain reads from chromosome 21
+chip = file.path(workdir,'Gm12878Ctcf.bam')
+input = file.path(workdir,'Gm12878Control.bam')
+## chromosome length info from humange genome build hg19
+hg_chrs = fetchExtendedChromInfoFromUCSC('hg19') 
+hg_chrs_chr21 = subset(hg_chrs, grepl('chr21$',UCSC_seqlevel))
+seqlen_chr21 = with(hg_chrs_chr21, setNames(UCSC_seqlength, UCSC_seqlevel))
+## create genomic 1000bp windows and store them using GenomeRanges
+window_gr = unlist(tileGenome(seqlen_chr21, tilewidth=1000))
+## count reads from both files for all windows
+rc = summarizeOverlaps(window_gr, c(chip, input))
+rc = assays(rc)[[1]]
+## simple normalization based on library size
+cpm_chr21 = t(t(rc)*(1000000/colSums(rc)))
+head(cpm_chr21)
+```
+
+We will present the data intuitively with visualization: (1) which windows are different between 
+ChIP and INPUT (2) where data is located on the genome. The first figure indicates the enrichment of 
+reads in windows that are shown above the diagonal line; the second figure indicates physically where 
+those enriched windows are located on the chromosome.
+
+```{r windowplot, fig.height = 5, fig.width=10 }
+par(mfrow=c(1,2))
+## read counts in all windows
+plot(log2(cpm_chr21[,2]+1),log2(cpm_chr21[,1]+1),pch=16,cex=0.25,xlab='log2(INPUT)',ylab='log2(ChIP)')
+abline(a=0,b=1)
+## read counts along the chromosome
+plot(log2(cpm_chr21[,2]+1),col='blue',pch=16,cex=0.25,xlab='window index',ylab='log2 signal')
+points(log2(cpm_chr21[,1]+1),col='red',pch=16,cex=0.25)
+legend('topleft',c('ChIP','Input'),pch=16,col=c('red','blue'),bty='n')
+```
+
+It is noted that there are other procedures available for exploratory data analysis. We don't cover them
+there for the sake of time.
+
+## Peak detection
+
+We will use  R package **normr** (Helmuth et al. 2016) for peak calling. Function **enrichR** will be 
+utilized to perform peak detection. This function will count the reads for 250bp windows, and compare 
+ChIP and INPUT by fitting a mixture of binomial distributions. Then, function **summary** will show the
+general model fitting results, inlcuding the percentage of enriched windows and the q-values.
+
+```{r normr,echo=TRUE,message=FALSE}
+## peak deteaction based on 250bp windows
+peakfit = enrichR(treatment = chip,control=input,genome='hg19',verbose=FALSE)
+summary(peakfit)
+```
+
+We can see that the total number of significant enriched peaks/windows is 1154, spreading across
+different levels of q-values. One of the major benefits of using Bioconductor packages is that we can 
+extract all info/results from one package and easily load them into other packages to 
+facilitate data analysis. Here, we will export results from **normr** to GRanges format
+(package **GenomicRanges**), which is a generic data container for genomic data analysis.
+
+```{r range, echo=TRUE,message=FALSE}
+## formalizing peak info with GRanges container
+peaks = getRanges(peakfit) 
+peaks$sig = getEnrichment(peakfit) ## add enrichmend signal
+peaks$qvalue = getQvalues(peakfit) ## add enrichment significance
+peaks
+```
+
+We can see most of the peaks/windows hold q-values as NA. These regions are actually not significantly 
+enriched based on function **enrichR**. However, all regions are reported no matter the statuses of their 
+significance. Thus, we should further filter these peaks using q-values.
+
+```{r peaksig, echo=TRUE, message=TRUE}
+## only consider a peak as significantly enriched if its q-value is less than 0.01
+peakssig = peaks[which(peaks$qvalue<0.01)]
+peakssig = peakssig[order(peakssig$qvalue)]
+peakssig
+```
+
+After filtering based on q-values, we have resulted 940 enriched peaks/windows. Now we can go back 
+to re-visit the previous figure and color it by enrichment significance.
+
+```{r windowplotcolor, fig.height = 5, fig.width=5 }
+## determine those 1000bp windows that are overlapped with the significant peaks
+sigidx = queryHits(findOverlaps(window_gr,peakssig))
+## different colors to separate significance (red) from non-significance
+plot(log2(cpm_chr21[-sigidx,2]+1),log2(cpm_chr21[-sigidx,1]+1),pch=16,cex=0.25,xlab='log2(INPUT)',ylab='log2(ChIP)')
+points(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.25,col='red')
+abline(a=0,b=1)
+```
+
+
+## Peak annotation
+
+Once peaks are identified, it is important and common to understand the characteristics of the peaks.
+We will use package **ChIPseeker** to annotate the significant peaks. Several key points will be 
+covered here: (1) where do the significant peaks locate (2) how significant are the peak candidates 
+(3) how does binding profile look like surrounding a given gene.
+
+First, we can visualize the peaks along the chromosome based on barplot of peak enrichment scores. Some 
+peaks show higher bars/significance while others lower. It is noted that genomic locations without bars
+do not necessarily mean there are no sequencing reads. It only suggests that reads are not significantly
+enriched.
+
+```{r peakplot1, fig.height = 2, fig.width=10 }
+## peaks along the chromosome
+covplot(peakssig,chrs='chr21',lower=0.4,weightCol = 'sig')
+```
+
+Another common task in ChIP-seq data analysis is to check how peaks are distributed in terms of their
+relations with genes. Here, we extract information of all annotated genes using Bioconductor package **TxDb.Hsapiens.UCSC.hg19.knownGene**. Function **annotatePeak** will then automatically calculate 
+peak distribution based on these genes. We show following in two ways that how peaks are distributed 
+across integenic regions, promoters, introns and exons etc.
+
+```{r peakplot2, results= 'hide', fig.height = 3, fig.width=10 }
+txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+## annotate peaks
+peakAnno <- annotatePeak(peakssig, tssRegion=c(-3000, 3000),
+                         TxDb=txdb, annoDb="org.Hs.eg.db")
+## visualize peak distribution
+plotAnnoBar(peakAnno)
+plotDistToTSS(peakAnno,
+              title="Distribution of transcription factor-binding loci relative to TSS")
+```
+
+As we mentioned in our previous lecture, we can also visualize the signal intensities close to all ChIP-seq peaks.
+We do that by pile up all peak regions together, align them by their peak centers, extend all peaks to the same width, and
+visualize signal intensities using heatmap. See following code. 
+
+```{r peakplot3, fig.height = 6, fig.width=3 }
+## choose a proper color you like for heatmap plot
+cols = brewer.pal(9,'Greys')[(-7):(-9)]
+## entend peaks into the same width, and align their centers
+peakssigre = shift(resize(peakssig,6000),-round((6000-width(peakssig))/2))
+## count read signals for every base pair in all extended peaks
+tagMatrix <- getTagMatrix(peakssigre, windows=peakssigre)
+## plot heatmap
+tagHeatmap(tagMatrix, xlim=c(-3000, 3000), color=cols)
+```
+
+Finally, we can visualize ChIP-seq signals around individual genes. To do so, we first extract
+the genomic coordinates of the genes of interest, *e.g.* ABG1. We will extend the gene region to include
+its promoter regions since promoter regions tend to be signal-enriched by transcription factors and 
+are thus worthy to be checked in ChIP-seq studies. Here, we set promoter regions as the upstream of 
+the transcription starting sites with 3000bp length. We extract ChIP-seq signals for the extended 
+gene region and visualize the signals in a comparative manner between  ChIP and INPUT.
+
+```{r peakplot4, fig.height = 3, fig.width=10 }
+## extract gene information
+## you are encouraged to change gene names 
+genes = genes(txdb)
+genes = genes[seqnames(genes)=='chr21']
+symbl = unlist(lookUp(genes$gene_id, 'org.Hs.eg', 'SYMBOL'))
+genes$gene_name = symbl[match(genes$gene_id,names(symbl))]
+genes
+pickgenename = 'ABCG1'
+genepick = genes[which(genes$gene_name==pickgenename)[1]]
+## extend gene region to include promoters
+genepick = reduce(c(promoters(genepick,upstream = 3000,downstream = 0),genepick))
+## extract ChIP-seq coverage from both ChIP and INPUT
+cov_chip = coverage(resize(GRanges(readGAlignments(chip)),300))
+cov_input = coverage(resize(GRanges(readGAlignments(input)),300))
+cov_chip_gene = cov_chip$chr21[start(genepick):end(genepick)]
+cov_input_gene = cov_input$chr21[start(genepick):end(genepick)]
+## plot coverage and label the transcription starting site
+plot(cov_chip_gene,type = 'l',col='red',ylab='coverage',xlab='genomic location',xaxt = 'n',main=pickgenename)
+lines(cov_input_gene,col='blue')
+axis(1, at=round(seq(1,width(genepick),len=5)), labels=round(seq(start(genepick),end(genepick),len=5)))
+abline(v=ifelse(strand(genepick)=='+',3000,width(genepick)-3000),col='green',lwd=2)
+legend('top',c('ChIP','Input'),lty=1,col=c('red','blue'),bty='n')
+```
