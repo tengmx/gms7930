@@ -190,15 +190,16 @@ summary {
 <p>In order to perform ChIP-seq data analysis with R, we have to first make sure necessary R packages installed before any processing. Bioconductor <a href="http://www.bioconductor.org" class="uri">http://www.bioconductor.org</a> is a large community which documents thousands of R packages dedicated to biomedical data analysis. We will pick several of those packages from Bioconductor for ChIP-seq data analysis. Note that some widely-used tools for ChIP-seq data analysis were not developed under R environment. Thus, R packages chosen here are for demostration purpose, and might not be well adopted by community users.</p>
 <pre class="r"><code>## install necessary Bioconductor packages
 if (!requireNamespace(&quot;BiocManager&quot;, quietly = TRUE)) install.packages(&quot;BiocManager&quot;)
-#BiocManager::install(&quot;Rsamtools&quot;) ## dealing with BAM files
-#BiocManager::install(&quot;GenomicAlignments&quot;) ## dealing with sequencing reads
+#BiocManager::install(version = &quot;3.10&quot;)
+#BiocManager::install(&quot;knitr&quot;) ## dealing with rmarkdown
 #BiocManager::install(&quot;GenomicRanges&quot;) ## dealing with genomic intervals
-BiocManager::install(&quot;knitr&quot;) ## dealing with rmarkdown
 #BiocManager::install(&quot;normr&quot;) ## dealing with peak calling
 #BiocManager::install(&quot;ChIPseeker&quot;) ## dealing with peak annotation
 #BiocManager::install(&quot;TxDb.Hsapiens.UCSC.hg19.knownGene&quot;) ## human genome and transcriptome
 #BiocManager::install(&quot;org.Hs.eg.db&quot;) ## gene name ontology
 #BiocManager::install(&quot;annotate&quot;) ## genome annotation
+#BiocManager::install(&quot;Rsamtools&quot;) ## dealing with BAM files
+#BiocManager::install(&quot;GenomicAlignments&quot;) ## dealing with sequencing reads
 #BiocManager::install(&quot;rtracklayer&quot;) ## genomic sequencing tracks
 #BiocManager::install(&quot;RColorBrewer&quot;) ## color code</code></pre>
 <p>After all required packages installed, we need to load these packages.</p>
@@ -223,11 +224,11 @@ library(RColorBrewer)</code></pre>
 <p>For demostration, we have generated small BAM files only containing sequencing reads on human chromosome 21 for protein CTCF binding in cell line GM12878 <a href="https://github.com/tengmx/gms7930/data" class="uri">https://github.com/tengmx/gms7930/data</a>. The full genome-wide sequencing data can be downloaded from here: <a href="https://hgdownload.soe.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeBroadHistone/" class="uri">https://hgdownload.soe.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeBroadHistone/</a>. As we discussed before, we also need INPUT sample to control experimental noises. We can download both files with the following code and put all files into a folder for downstream analysis. Note, we also download the index files for the BAM files here.</p>
 <pre class="r"><code>## download the ChIP-seq sequencing reads, and put the files into a folder
 ## depending on the operating system, folder name might need to be changed.
-workdir = '~'
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam',paste0(workdir,'/Gm12878Control.bam'))
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam.bai',paste0(workdir,'/Gm12878Control.bam.bai'))
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam',paste0(workdir,'/Gm12878Ctcf.bam'))
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam.bai',paste0(workdir,'/Gm12878Ctcf.bam.bai'))</code></pre>
+workdir = '~/' ## note: For Windows 10/8/7, please use &quot;C:\\&quot; instead of &quot;~/&quot;
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam',paste0(workdir,'Gm12878Control.bam'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam.bai',paste0(workdir,'Gm12878Control.bam.bai'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam',paste0(workdir,'Gm12878Ctcf.bam'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam.bai',paste0(workdir,'Gm12878Ctcf.bam.bai'))</code></pre>
 </div>
 <div id="exploratory-data-analysis" class="section level2">
 <h2>Exploratory data analysis</h2>
@@ -308,19 +309,19 @@ peaks$sig = getEnrichment(peakfit) ## add enrichmend signal
 peaks$qvalue = getQvalues(peakfit) ## add enrichment significance
 peaks</code></pre>
 <pre><code>## GRanges object with 12382723 ranges and 3 metadata columns:
-##              seqnames            ranges strand | component                  sig
-##                 &lt;Rle&gt;         &lt;IRanges&gt;  &lt;Rle&gt; | &lt;integer&gt;            &lt;numeric&gt;
-##          [1]     chr1             1-250      * |      &lt;NA&gt; 1.68872351317349e-17
-##          [2]     chr1           251-500      * |      &lt;NA&gt; 1.68872351317349e-17
-##          [3]     chr1           501-750      * |      &lt;NA&gt; 1.68872351317349e-17
-##          [4]     chr1          751-1000      * |      &lt;NA&gt; 1.68872351317349e-17
-##          [5]     chr1         1001-1250      * |      &lt;NA&gt; 1.68872351317349e-17
-##          ...      ...               ...    ... .       ...                  ...
-##   [12382719]     chrY 59372501-59372750      * |      &lt;NA&gt; 1.68872351317349e-17
-##   [12382720]     chrY 59372751-59373000      * |      &lt;NA&gt; 1.68872351317349e-17
-##   [12382721]     chrY 59373001-59373250      * |      &lt;NA&gt; 1.68872351317349e-17
-##   [12382722]     chrY 59373251-59373500      * |      &lt;NA&gt; 1.68872351317349e-17
-##   [12382723]     chrY 59373501-59373566      * |      &lt;NA&gt; 1.68872351317349e-17
+##              seqnames            ranges strand | component                 sig
+##                 &lt;Rle&gt;         &lt;IRanges&gt;  &lt;Rle&gt; | &lt;integer&gt;           &lt;numeric&gt;
+##          [1]     chr1             1-250      * |      &lt;NA&gt; 4.2218086353907e-18
+##          [2]     chr1           251-500      * |      &lt;NA&gt; 4.2218086353907e-18
+##          [3]     chr1           501-750      * |      &lt;NA&gt; 4.2218086353907e-18
+##          [4]     chr1          751-1000      * |      &lt;NA&gt; 4.2218086353907e-18
+##          [5]     chr1         1001-1250      * |      &lt;NA&gt; 4.2218086353907e-18
+##          ...      ...               ...    ... .       ...                 ...
+##   [12382719]     chrY 59372501-59372750      * |      &lt;NA&gt; 4.2218086353907e-18
+##   [12382720]     chrY 59372751-59373000      * |      &lt;NA&gt; 4.2218086353907e-18
+##   [12382721]     chrY 59373001-59373250      * |      &lt;NA&gt; 4.2218086353907e-18
+##   [12382722]     chrY 59373251-59373500      * |      &lt;NA&gt; 4.2218086353907e-18
+##   [12382723]     chrY 59373501-59373566      * |      &lt;NA&gt; 4.2218086353907e-18
 ##                 qvalue
 ##              &lt;numeric&gt;
 ##          [1]      &lt;NA&gt;
@@ -344,30 +345,30 @@ peakssig</code></pre>
 <pre><code>## GRanges object with 940 ranges and 3 metadata columns:
 ##         seqnames            ranges strand | component               sig
 ##            &lt;Rle&gt;         &lt;IRanges&gt;  &lt;Rle&gt; | &lt;integer&gt;         &lt;numeric&gt;
-##     [1]    chr21 27174001-27174250      * |         1  1.38283436512239
-##     [2]    chr21 45359001-45359250      * |         1  3.06896518087483
-##     [3]    chr21 45209251-45209500      * |         1  1.54993316590039
-##     [4]    chr21 27173751-27174000      * |         1  1.19779181074755
-##     [5]    chr21 46312751-46313000      * |         1  2.95259398580732
+##     [1]    chr21 27174001-27174250      * |         1  1.38283430832267
+##     [2]    chr21 45359001-45359250      * |         1  3.06896506927258
+##     [3]    chr21 45209251-45209500      * |         1  1.54993310327543
+##     [4]    chr21 27173751-27174000      * |         1  1.19779176040986
+##     [5]    chr21 46312751-46313000      * |         1  2.95259387827207
 ##     ...      ...               ...    ... .       ...               ...
-##   [936]    chr21 36118251-36118500      * |      &lt;NA&gt; 0.456877123926997
-##   [937]    chr21 41088001-41088250      * |      &lt;NA&gt; 0.456877123926997
-##   [938]    chr21 42635501-42635750      * |      &lt;NA&gt; 0.456877123926997
-##   [939]    chr21 43653501-43653750      * |      &lt;NA&gt; 0.456877123926997
-##   [940]    chr21 47035251-47035500      * |      &lt;NA&gt; 0.456877123926997
+##   [936]    chr21 36118251-36118500      * |      &lt;NA&gt; 0.456877099490719
+##   [937]    chr21 41088001-41088250      * |      &lt;NA&gt; 0.456877099490719
+##   [938]    chr21 42635501-42635750      * |      &lt;NA&gt; 0.456877099490719
+##   [939]    chr21 43653501-43653750      * |      &lt;NA&gt; 0.456877099490719
+##   [940]    chr21 47035251-47035500      * |      &lt;NA&gt; 0.456877099490719
 ##                       qvalue
 ##                    &lt;numeric&gt;
-##     [1] 8.44383558960318e-50
-##     [2] 3.82740554014128e-48
-##     [3] 8.66988460912823e-45
-##     [4] 4.98290446820013e-39
-##     [5] 8.01155043016437e-33
+##     [1]  8.4438588958376e-50
+##     [2] 3.82741513570388e-48
+##     [3] 8.66990549911948e-45
+##     [4] 4.98291558496036e-39
+##     [5] 8.01156413086061e-33
 ##     ...                  ...
-##   [936]  0.00841704534787817
-##   [937]  0.00841704534787817
-##   [938]  0.00841704534787817
-##   [939]  0.00841704534787817
-##   [940]  0.00841704534787817
+##   [936]  0.00841704626805563
+##   [937]  0.00841704626805563
+##   [938]  0.00841704626805563
+##   [939]  0.00841704626805563
+##   [940]  0.00841704626805563
 ##   -------
 ##   seqinfo: 24 sequences from an unspecified genome</code></pre>
 <p>After filtering based on q-values, we have resulted 940 enriched peaks/windows. Now we can go back to re-visit the previous figure and color it by enrichment significance.</p>

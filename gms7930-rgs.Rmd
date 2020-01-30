@@ -21,17 +21,18 @@ Thus, R packages chosen here are for demostration purpose, and might not be well
 ```{r install, echo=TRUE, results='hide',message=FALSE}
 ## install necessary Bioconductor packages
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-#BiocManager::install("Rsamtools") ## dealing with BAM files
-#BiocManager::install("GenomicAlignments") ## dealing with sequencing reads
-#BiocManager::install("GenomicRanges") ## dealing with genomic intervals
+BiocManager::install(version = "3.10")
 BiocManager::install("knitr") ## dealing with rmarkdown
-#BiocManager::install("normr") ## dealing with peak calling
-#BiocManager::install("ChIPseeker") ## dealing with peak annotation
-#BiocManager::install("TxDb.Hsapiens.UCSC.hg19.knownGene") ## human genome and transcriptome
-#BiocManager::install("org.Hs.eg.db") ## gene name ontology
-#BiocManager::install("annotate") ## genome annotation
-#BiocManager::install("rtracklayer") ## genomic sequencing tracks
-#BiocManager::install("RColorBrewer") ## color code
+BiocManager::install("GenomicRanges") ## dealing with genomic intervals
+BiocManager::install("normr") ## dealing with peak calling
+BiocManager::install("ChIPseeker") ## dealing with peak annotation
+BiocManager::install("TxDb.Hsapiens.UCSC.hg19.knownGene") ## human genome and transcriptome
+BiocManager::install("org.Hs.eg.db") ## gene name ontology
+BiocManager::install("annotate") ## genome annotation
+BiocManager::install("Rsamtools") ## dealing with BAM files
+BiocManager::install("GenomicAlignments") ## dealing with sequencing reads
+BiocManager::install("rtracklayer") ## genomic sequencing tracks
+BiocManager::install("RColorBrewer") ## color code
 ```
 
 After all required packages installed, we need to load these packages.
@@ -75,11 +76,11 @@ index files for the BAM files here.
 ```{r downloads, echo=TRUE, results='hide',message=FALSE}
 ## download the ChIP-seq sequencing reads, and put the files into a folder
 ## depending on the operating system, folder name might need to be changed.
-workdir = '~'
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam',paste0(workdir,'/Gm12878Control.bam'))
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam.bai',paste0(workdir,'/Gm12878Control.bam.bai'))
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam',paste0(workdir,'/Gm12878Ctcf.bam'))
-download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam.bai',paste0(workdir,'/Gm12878Ctcf.bam.bai'))
+workdir = '~/' ## note: For Windows 10/8/7, please use "C:\\" instead of "~/"
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam',paste0(workdir,'Gm12878Control.bam'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam.bai',paste0(workdir,'Gm12878Control.bam.bai'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam',paste0(workdir,'Gm12878Ctcf.bam'))
+download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam.bai',paste0(workdir,'Gm12878Ctcf.bam.bai'))
 ```
 
 ## Exploratory data analysis
