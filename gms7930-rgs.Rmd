@@ -1,7 +1,7 @@
 ---
 title: "ChIP-seq Data Analysis"
 author: "Mingxiang Teng"
-date: "1/27/2020"
+date: "1/26/2021"
 output: html_document
 ---
 
@@ -21,12 +21,14 @@ Thus, R packages chosen here are for demostration purpose, and might not be well
 ```{r install, echo=TRUE, results='hide',message=FALSE}
 ## install necessary Bioconductor packages
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-BiocManager::install(version = "3.10")
+BiocManager::install()
 BiocManager::install("knitr") ## dealing with rmarkdown
 BiocManager::install("GenomicRanges") ## dealing with genomic intervals
 BiocManager::install("normr") ## dealing with peak calling
 BiocManager::install("ChIPseeker") ## dealing with peak annotation
-BiocManager::install("TxDb.Hsapiens.UCSC.hg19.knownGene") ## human genome and transcriptome
+BiocManager::install("TxDb.Hsapiens.UCSC.hg38.knownGene") ## human genome and transcriptome
+BiocManager::install("GenomeInfoDb")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 BiocManager::install("org.Hs.eg.db") ## gene name ontology
 BiocManager::install("annotate") ## genome annotation
 BiocManager::install("Rsamtools") ## dealing with BAM files
@@ -42,7 +44,8 @@ library(Rsamtools)
 library(GenomicAlignments)
 library(GenomicRanges)
 library(normr)
-library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(BSgenome.Hsapiens.UCSC.hg38)
 library(org.Hs.eg.db)
 library(ChIPseeker)
 library(annotate)
@@ -68,15 +71,14 @@ usually involves dozens of million of reads.
 
 For demostration, we have generated small BAM files only containing sequencing reads on human chromosome 21
 for protein CTCF binding in cell line GM12878 <https://github.com/tengmx/gms7930/data>. The full genome-wide 
-sequencing data can be downloaded from here: <https://hgdownload.soe.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeBroadHistone/>.
-As we discussed before, we also need INPUT sample to control experimental noises. We can download both files
-with the following code and put all files into a folder for downstream analysis. Note, we also download the 
+sequencing data can be downloaded from here:  <https://www.encodeproject.org/experiments/ENCSR000AKB/>.
+As we discussed before, we also need INPUT sample to control experimental noises: <https://www.encodeproject.org/experiments/ENCSR000AKJ/>. We can download both files with the following code and put all files into a folder for downstream analysis. Note, we also download the 
 index files for the BAM files here.
 
 ```{r downloads, echo=TRUE, results='hide',message=FALSE}
 ## download the ChIP-seq sequencing reads, and put the files into a folder
 ## depending on the operating system, folder name might need to be changed.
-workdir = '~/' ## note: For Windows 10/8/7, please use "C:\\" instead of "~/"
+workdir = '~/' ## 
 download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam',paste0(workdir,'Gm12878Control.bam'))
 download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Control.bam.bai',paste0(workdir,'Gm12878Control.bam.bai'))
 download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam',paste0(workdir,'Gm12878Ctcf.bam'))
@@ -100,9 +102,8 @@ the read counts of first several windows on chr21 in both ChIP and INPUT.
 chip = file.path(workdir,'Gm12878Ctcf.bam')
 input = file.path(workdir,'Gm12878Control.bam')
 ## chromosome length info from humange genome build hg19
-hg_chrs = fetchExtendedChromInfoFromUCSC('hg19') 
-hg_chrs_chr21 = subset(hg_chrs, grepl('chr21$',UCSC_seqlevel))
-seqlen_chr21 = with(hg_chrs_chr21, setNames(UCSC_seqlength, UCSC_seqlevel))
+hg_chrs = getBSgenome("hg38")
+seqlen_chr21 = seqlengths(hg_chrs)['chr21']
 ## create genomic 1000bp windows and store them using GenomeRanges
 window_gr = unlist(tileGenome(seqlen_chr21, tilewidth=1000))
 ## count reads from both files for all windows
@@ -121,11 +122,11 @@ those enriched windows are located on the chromosome.
 ```{r windowplot, fig.height = 5, fig.width=10 }
 par(mfrow=c(1,2))
 ## read counts in all windows
-plot(log2(cpm_chr21[,2]+1),log2(cpm_chr21[,1]+1),pch=16,cex=0.25,xlab='log2(INPUT)',ylab='log2(ChIP)')
+plot(log2(cpm_chr21[,2]+1),log2(cpm_chr21[,1]+1),pch=16,cex=0.5,xlab='log2(INPUT)',ylab='log2(ChIP)',ylim=c(0,11),xlim=c(0,11))
 abline(a=0,b=1)
 ## read counts along the chromosome
-plot(log2(cpm_chr21[,2]+1),col='blue',pch=16,cex=0.25,xlab='window index',ylab='log2 signal')
-points(log2(cpm_chr21[,1]+1),col='red',pch=16,cex=0.25)
+plot(log2(cpm_chr21[,2]+1),col='blue',pch=16,cex=0.5,xlab='window index',ylab='log2 signal',ylim=c(0,11))
+points(log2(cpm_chr21[,1]+1),col='red',pch=16,cex=0.5)
 legend('topleft',c('ChIP','Input'),pch=16,col=c('red','blue'),bty='n')
 ```
 
@@ -141,7 +142,7 @@ general model fitting results, inlcuding the percentage of enriched windows and 
 
 ```{r normr,echo=TRUE,message=FALSE}
 ## peak deteaction based on 250bp windows
-peakfit = enrichR(treatment = chip,control=input,genome='hg19',verbose=FALSE)
+peakfit = enrichR(treatment = chip,control=input,genome='hg38',verbose=FALSE) ## bug due to genome version
 summary(peakfit)
 ```
 
@@ -155,7 +156,7 @@ facilitate data analysis. Here, we will export results from **normr** to GRanges
 ## formalizing peak info with GRanges container
 peaks = getRanges(peakfit) 
 peaks$sig = getEnrichment(peakfit) ## add enrichmend signal
-peaks$qvalue = getQvalues(peakfit) ## add enrichment significance
+peaks$pvalue = getPvalues(peakfit) ## add enrichment significance
 peaks
 ```
 
@@ -165,8 +166,8 @@ significance. Thus, we should further filter these peaks using q-values.
 
 ```{r peaksig, echo=TRUE, message=TRUE}
 ## only consider a peak as significantly enriched if its q-value is less than 0.01
-peakssig = peaks[which(peaks$qvalue<0.01)]
-peakssig = peakssig[order(peakssig$qvalue)]
+peakssig = peaks[which(peaks$pvalue<0.01)]
+peakssig = peakssig[order(peakssig$pvalue)]
 peakssig
 ```
 
@@ -206,7 +207,7 @@ peak distribution based on these genes. We show following in two ways that how p
 across integenic regions, promoters, introns and exons etc.
 
 ```{r peakplot2, results= 'hide', fig.height = 3, fig.width=10 }
-txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 ## annotate peaks
 peakAnno <- annotatePeak(peakssig, tssRegion=c(-3000, 3000),
                          TxDb=txdb, annoDb="org.Hs.eg.db")
