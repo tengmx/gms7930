@@ -178,8 +178,8 @@ to re-visit the previous figure and color it by enrichment significance.
 ## determine those 1000bp windows that are overlapped with the significant peaks
 sigidx = queryHits(findOverlaps(window_gr,peakssig))
 ## different colors to separate significance (red) from non-significance
-plot(log2(cpm_chr21[-sigidx,2]+1),log2(cpm_chr21[-sigidx,1]+1),pch=16,cex=0.25,xlab='log2(INPUT)',ylab='log2(ChIP)')
-points(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.25,col='red')
+plot(log2(cpm_chr21[-sigidx,2]+1),log2(cpm_chr21[-sigidx,1]+1),pch=16,cex=0.5,xlab='log2(INPUT)',ylab='log2(ChIP)',ylim=c(0,11),xlim=c(0,11))
+points(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.5,col='red')
 abline(a=0,b=1)
 ```
 
