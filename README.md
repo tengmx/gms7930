@@ -6,7 +6,7 @@ files in the **data** folder, while the rmarkdown file (*gms7930-rgs.Rmd*) and
 its output file (*gms7930-rgs.html*) are located in the project root folder.
 
 To open and run the Rmarkdown file, *rstudio* has to be installed firstly. 
-Make sure you have the R version 3.6.0 or above installed in your computer.
+Make sure you have the lastest R release version installed in your computer.
 Also, if *rstuio* is not running on MAC or Linux system, one edit is  needed in 
 the *gms7930-rgs.Rmd* file before starting: the value of **workdir** on row 78 has
 to be changed into system compatible file path, such as 'C:\\' on Windows system.
