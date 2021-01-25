@@ -63,7 +63,7 @@ related to individual genes.
 ## Prepare ChIP-seq data
 
 We will start from the mapped sequencing reads instead of the raw for two reasons: (1) our main practice here 
-is to demostrate ChIP-seq peak detection and annotation. (2) tools for raw data processing, *e.g.* reads mapping,
+is to demonstrate ChIP-seq peak detection and annotation. (2) tools for raw data processing, *e.g.* reads mapping,
 are generally not developed under R. Mapped reads are usually stored with SAM format <https://samtools.github.io/hts-specs/SAMv1.pdf>. 
 To shrink the size of the SAM files, SAM format is usually further converted to its binary version, *i.e.* 
 BAM format. Basically, each record of SAM/BAM files represents one sequencing read. A ChIP-seq sequencing sample 
@@ -141,7 +141,7 @@ ChIP and INPUT by fitting a mixture of binomial distributions. Then, function **
 general model fitting results, inlcuding the percentage of enriched windows and the q-values.
 
 ```{r normr,echo=TRUE,message=FALSE}
-## peak deteaction based on 250bp windows
+## peak detection based on 250bp windows
 peakfit = enrichR(treatment = chip,control=input,genome='hg38',verbose=FALSE) ## bug due to genome version
 summary(peakfit)
 ```
@@ -262,4 +262,5 @@ lines(cov_input_gene,col='blue')
 axis(1, at=round(seq(1,width(genepick),len=5)), labels=round(seq(start(genepick),end(genepick),len=5)))
 abline(v=ifelse(strand(genepick)=='+',3000,width(genepick)-3000),col='green',lwd=2)
 legend('top',c('ChIP','Input'),lty=1,col=c('red','blue'),bty='n')
+save(rc,peakfit,cov_chip,cov_input,file='preloadforwindows.rda')
 ```
