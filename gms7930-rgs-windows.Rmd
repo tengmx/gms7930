@@ -133,7 +133,7 @@ legend('topleft',c('ChIP','Input'),pch=16,col=c('red','blue'),bty='n')
 ```
 
 It is noted that there are other procedures available for exploratory data analysis. We don't cover them
-there for the sake of time.
+here for the sake of time.
 
 ## Peak detection
 
@@ -148,7 +148,7 @@ general model fitting results, including the percentage of enriched windows and 
 summary(peakfit)
 ```
 
-We can see that the total number of significant enriched peaks/windows is 1154, spreading across
+We can see that the total number of significant enriched peaks/windows is 694, spreading across
 different levels of q-values. One of the major benefits of using Bioconductor packages is that we can 
 extract all info/results from one package and easily load them into other packages to 
 facilitate data analysis. Here, we will export results from **normr** to GRanges format
@@ -162,9 +162,9 @@ peaks$pvalue = getPvalues(peakfit) ## add enrichment significance
 peaks
 ```
 
-We can see most of the peaks/windows hold q-values as NA. These regions are actually not significantly 
+We can see most of the peaks/windows hold p-values as NA. These regions are actually not significantly 
 enriched based on function **enrichR**. However, all regions are reported no matter the statuses of their 
-significance. Thus, we should further filter these peaks using q-values.
+significance. Thus, we should further filter these peaks using p-values.
 
 ```{r peaksig, echo=TRUE, message=TRUE}
 ## only consider a peak as significantly enriched if its q-value is less than 0.01
@@ -173,7 +173,7 @@ peakssig = peakssig[order(peakssig$pvalue)]
 peakssig
 ```
 
-After filtering based on q-values, we have resulted 940 enriched peaks/windows. Now we can go back 
+After filtering based on p-values, we have resulted 706 enriched peaks/windows. Now we can go back 
 to re-visit the previous figure and color it by enrichment significance.
 
 ```{r windowplotcolor, fig.height = 5, fig.width=5 }
