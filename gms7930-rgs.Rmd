@@ -16,7 +16,7 @@ installed before any processing. Bioconductor <http://www.bioconductor.org> is a
 which documents thousands of R packages dedicated to biomedical data analysis.
 We will pick several of those packages from Bioconductor for ChIP-seq data analysis. Note that 
 some widely-used tools for ChIP-seq data analysis were not developed under R environment. 
-Thus, R packages chosen here are for demostration purpose, and might not be well adopted by community users.
+Thus, R packages chosen here are for demonstration purpose, and might not be well adopted by community users.
 
 ```{r install, echo=TRUE, results='hide',message=FALSE}
 ## install necessary Bioconductor packages
@@ -89,22 +89,22 @@ download.file('https://github.com/tengmx/gms7930/raw/master/data/Gm12878Ctcf.bam
 
 Exploratory data analysis helps us better understand our data using simple techniques/operation.
 
-With the downloaded dataset, we can compare ChIP and INPUT to see if ChIP actually contains 
+With the downloaded datasets, we can compare ChIP and INPUT to see if ChIP actually contains 
 more "peaks" than INPUT. To do so, we will use functions from R package **GenomicAlignments**.
 We first specify ChIP and INPUT file, separately, then count the sequencing reads in these files
 that are overlapped with consecutive genomic windows of 1000bp width. Here, for exploratory 
-purpose, we use large window size to mimic peak regions. Then, we can apply simple normalizatin 
+purpose, we use large window size to mimic peak regions. Then, we can apply simple normalization 
 procedure based on library size to make data "comparable" across samples. Following code shows 
 the read counts of first several windows on chr21 in both ChIP and INPUT.
 
 ```{r bam, echo=TRUE}
-## sequencing files that only contrain reads from chromosome 21
+## sequencing files that only contain reads from chromosome 21
 chip = file.path(workdir,'Gm12878Ctcf.bam')
 input = file.path(workdir,'Gm12878Control.bam')
-## chromosome length info from humange genome build hg19
+## chromosome length info from human genome build hg19
 hg_chrs = getBSgenome("hg38")
 seqlen_chr21 = seqlengths(hg_chrs)['chr21']
-## create genomic 1000bp windows and store them using GenomeRanges
+## create genomic 1000bp windows and store them using GenomicRanges
 window_gr = unlist(tileGenome(seqlen_chr21, tilewidth=1000))
 ## count reads from both files for all windows
 rc = summarizeOverlaps(window_gr, c(chip, input))
@@ -138,7 +138,7 @@ there for the sake of time.
 We will use  R package **normr** (Helmuth et al. 2016) for peak calling. Function **enrichR** will be 
 utilized to perform peak detection. This function will count the reads for 250bp windows, and compare 
 ChIP and INPUT by fitting a mixture of binomial distributions. Then, function **summary** will show the
-general model fitting results, inlcuding the percentage of enriched windows and the q-values.
+general model fitting results, including the percentage of enriched windows and the q-values.
 
 ```{r normr,echo=TRUE,message=FALSE}
 ## peak detection based on 250bp windows
@@ -204,7 +204,7 @@ covplot(peakssig,chrs='chr21',lower=0.4,weightCol = 'sig')
 Another common task in ChIP-seq data analysis is to check how peaks are distributed in terms of their
 relations with genes. Here, we extract information of all annotated genes using Bioconductor package **TxDb.Hsapiens.UCSC.hg19.knownGene**. Function **annotatePeak** will then automatically calculate 
 peak distribution based on these genes. We show following in two ways that how peaks are distributed 
-across integenic regions, promoters, introns and exons etc.
+across intergenic regions, promoters, introns and exons etc.
 
 ```{r peakplot2, results= 'hide', fig.height = 3, fig.width=10 }
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
@@ -262,5 +262,5 @@ lines(cov_input_gene,col='blue')
 axis(1, at=round(seq(1,width(genepick),len=5)), labels=round(seq(start(genepick),end(genepick),len=5)))
 abline(v=ifelse(strand(genepick)=='+',3000,width(genepick)-3000),col='green',lwd=2)
 legend('top',c('ChIP','Input'),lty=1,col=c('red','blue'),bty='n')
-save(rc,peakfit,cov_chip,cov_input,file='preloadforwindows.rda')
+#save(rc,peakfit,cov_chip,cov_input,file='preloadforwindows.rda')
 ```
