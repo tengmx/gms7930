@@ -1,7 +1,7 @@
 ---
 title: "ChIP-seq Data Analysis"
 author: "Mingxiang Teng"
-date: "1/26/2021"
+date: "3/24/2022"
 output: html_document
 ---
 
@@ -20,8 +20,12 @@ Thus, R packages chosen here are for demonstration purpose, and might not be wel
 
 ```{r install, echo=TRUE, results='hide',message=FALSE}
 ## install necessary Bioconductor packages
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org" #https://cran.rstudio.com/
+options(repos = r)
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install()
+install.packages('rmarkdown')
 BiocManager::install("knitr") ## dealing with rmarkdown
 BiocManager::install("GenomicRanges") ## dealing with genomic intervals
 BiocManager::install("normr") ## dealing with peak calling
