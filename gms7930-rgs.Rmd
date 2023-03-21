@@ -1,7 +1,7 @@
 ---
 title: "ChIP-seq Data Analysis"
 author: "Mingxiang Teng"
-date: "3/24/2022"
+date: "3/19/2023"
 output: html_document
 ---
 
@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE)
 ```
 
-## Install R packages
+## Install R packages 
 
 In order to perform ChIP-seq data analysis with R, we have to first make sure necessary R packages 
 installed before any processing. Bioconductor <http://www.bioconductor.org> is a large community
@@ -183,9 +183,10 @@ to re-visit the previous figure and color it by enrichment significance.
 ## determine those 1000bp windows that are overlapped with the significant peaks
 sigidx = queryHits(findOverlaps(window_gr,peakssig))
 ## different colors to separate significance (red) from non-significance
+par(mfrow=c(1,2))
 plot(log2(cpm_chr21[-sigidx,2]+1),log2(cpm_chr21[-sigidx,1]+1),pch=16,cex=0.5,xlab='log2(INPUT)',ylab='log2(ChIP)',ylim=c(0,11),xlim=c(0,11))
-points(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.5,col='red')
-abline(a=0,b=1)
+plot(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.5,xlab='log2(INPUT)',ylab='log2(ChIP)',ylim=c(0,11),xlim=c(0,11), col='red')
+#abline(a=0,b=1)
 ```
 
 
