@@ -1,7 +1,7 @@
 ---
 title: "ChIP-seq Data Analysis"
 author: "Mingxiang Teng"
-date: "3/19/2023"
+date: "3/23/2023"
 output: html_document
 ---
 
@@ -183,10 +183,9 @@ to re-visit the previous figure and color it by enrichment significance.
 ## determine those 1000bp windows that are overlapped with the significant peaks
 sigidx = queryHits(findOverlaps(window_gr,peakssig))
 ## different colors to separate significance (red) from non-significance
-par(mfrow=c(1,2))
 plot(log2(cpm_chr21[-sigidx,2]+1),log2(cpm_chr21[-sigidx,1]+1),pch=16,cex=0.5,xlab='log2(INPUT)',ylab='log2(ChIP)',ylim=c(0,11),xlim=c(0,11))
-plot(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.5,xlab='log2(INPUT)',ylab='log2(ChIP)',ylim=c(0,11),xlim=c(0,11), col='red')
-#abline(a=0,b=1)
+points(log2(cpm_chr21[sigidx,2]+1),log2(cpm_chr21[sigidx,1]+1),pch=16,cex=0.5,col='red')
+abline(a=0,b=1)
 ```
 
 
@@ -233,9 +232,9 @@ cols = brewer.pal(9,'Greys')[(-7):(-9)]
 ## entend peaks into the same width, and align their centers
 peakssigre = shift(resize(peakssig,6000),-round((6000-width(peakssig))/2))
 ## count read signals for every base pair in all extended peaks
-tagMatrix <- getTagMatrix(peakssigre, windows=peakssigre)
+tagMatrix <- getTagMatrix(peakssigre, windows=makeBioRegionFromGranges(peakssigre,by='gene',type='body'),nbin=1000)
 ## plot heatmap
-tagHeatmap(tagMatrix, xlim=c(-3000, 3000), color=cols)
+tagHeatmap(tagMatrix, xlim=c(-500, 500), color=cols)
 ```
 
 Finally, we can visualize ChIP-seq signals around individual genes. To do so, we first extract
