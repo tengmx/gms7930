@@ -1,7 +1,7 @@
 ---
 title: "ChIP-seq Data Analysis"
 author: "Mingxiang Teng"
-date: "3/23/2023"
+date: "3/21/2024"
 output: html_document
 ---
 
@@ -234,7 +234,7 @@ peakssigre = shift(resize(peakssig,6000),-round((6000-width(peakssig))/2))
 ## count read signals for every base pair in all extended peaks
 tagMatrix <- getTagMatrix(peakssigre, windows=makeBioRegionFromGranges(peakssigre,by='gene',type='body'),nbin=1000)
 ## plot heatmap
-tagHeatmap(tagMatrix, xlim=c(-500, 500), color=cols)
+tagHeatmap(tagMatrix)
 ```
 
 Finally, we can visualize ChIP-seq signals around individual genes. To do so, we first extract

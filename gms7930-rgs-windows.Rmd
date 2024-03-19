@@ -1,7 +1,7 @@
 ---
 title: "ChIP-seq Data Analysis"
 author: "Mingxiang Teng"
-date: "3/23/2023"
+date: "3/21/2024"
 output: html_document
 ---
 
@@ -25,6 +25,7 @@ r["CRAN"] = "http://cran.us.r-project.org" #https://cran.rstudio.com/
 options(repos = r)
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install()
+install.packages("xfun")
 install.packages('rmarkdown')
 BiocManager::install("knitr") ## dealing with rmarkdown
 BiocManager::install("GenomicRanges") ## dealing with genomic intervals
